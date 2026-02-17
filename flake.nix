@@ -138,7 +138,9 @@
 
             packages = with pkgs; [
               ccache
+              clang-tidy-sarif
               llvm.clang-tools
+              sarif-fmt
             ];
 
             cmakeBuildType = "Debug";
