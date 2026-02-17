@@ -1,0 +1,43 @@
+name: clang-tidy
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  merge_group:
+    types: [checks_requested]
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  clang-tidy:
+    name: Run clang-tidy
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          submodules: "true"
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+
+      - name: Run clang-tidy
+        run: |
+          nix develop --command bash -c '
+            cmake --build build --target clang-tidy | clang-tidy-sarif | tee results.sarif | sarif-fmt
+          '
+
+      - name: Upload SARIF results
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: results.sarif
