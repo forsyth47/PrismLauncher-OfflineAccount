@@ -1667,6 +1667,23 @@ if(WIN32 OR (UNIX AND APPLE))
     )
 endif()
 
+find_program(CLANG_TIDY clang-tidy OPTIONAL)
+if(CLANG_TIDY)
+    message(STATUS "Using clang-tidy during compilation")
+    set(CLANG_TIDY_COMMAND "${CLANG_TIDY}" "--config-file=${CMAKE_SOURCE_DIR}/.clang-tidy")
+    foreach(target ${BUILDSYSTEM_TARGETS})
+        set_target_properties(${target} PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
+    endforeach()
+    message(STATUS "Creating clang-tidy target")
+    add_custom_target(
+        clang-tidy
+        COMMAND ${CLANG_TIDY_COMMAND} ${LOGIC_SOURCES} ${LAUNCHER_SOURCES} ${PRISMUPDATER_SOURCES} ${LINKEXE_SOURCES} ${PRECOMPILED_HEADERS}
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    )
+else()
+    message(WARNING "Unable to find `clang-tidy`. Not using during compilation")
+endif()
+
 find_program(CLANG_FORMAT clang-format OPTIONAL)
 if(CLANG_FORMAT)
     message(STATUS "Creating clang-format target")
