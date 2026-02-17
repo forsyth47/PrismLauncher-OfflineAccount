@@ -1,4 +1,5 @@
 FormatStyle: file
+WarningsAsErrors: '*'
 
 Checks:
   'bugprone-*,clang-analyzer-*,cppcoreguidelines-*,hicpp-*,misc-*,modernize-*,performance-*,portability-*,readability-*,
