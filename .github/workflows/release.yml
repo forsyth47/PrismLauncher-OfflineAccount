@@ -34,14 +34,14 @@ jobs:
       - name: Package artifacts properly
         run: |
           mv ${{ github.workspace }}/PrismLauncher-source PrismLauncher-${{ env.VERSION }}
-          mv PrismLauncher-Linux-Qt6-Portable*/PrismLauncher-portable.tar.gz PrismLauncher-Linux-Qt6-Portable-${{ env.VERSION }}.tar.gz
-          mv PrismLauncher-Linux-aarch64-Qt6-Portable*/PrismLauncher-portable.tar.gz PrismLauncher-Linux-aarch64-Qt6-Portable-${{ env.VERSION }}.tar.gz
-          mv PrismLauncher-*.AppImage/PrismLauncher-*-x86_64.AppImage PrismLauncher-Linux-x86_64.AppImage
-          mv PrismLauncher-*.AppImage.zsync/PrismLauncher-*-x86_64.AppImage.zsync PrismLauncher-Linux-x86_64.AppImage.zsync
-          mv PrismLauncher-*.AppImage/PrismLauncher-*-aarch64.AppImage PrismLauncher-Linux-aarch64.AppImage
-          mv PrismLauncher-*.AppImage.zsync/PrismLauncher-*-aarch64.AppImage.zsync PrismLauncher-Linux-aarch64.AppImage.zsync
-          mv PrismLauncher-macOS*/PrismLauncher.zip PrismLauncher-macOS-${{ env.VERSION }}.zip
-
+          mv PrismLauncher-Linux-Qt6-Portable*/PrismLauncher-portable.tar.gz PrismLauncher-Linux-Qt6-Portable-${{ env.VERSION }}.tar.gz || true
+          mv PrismLauncher-Linux-aarch64-Qt6-Portable*/PrismLauncher-portable.tar.gz PrismLauncher-Linux-aarch64-Qt6-Portable-${{ env.VERSION }}.tar.gz || true
+          mv PrismLauncher-*.AppImage/PrismLauncher-*-x86_64.AppImage PrismLauncher-Linux-x86_64.AppImage || true
+          mv PrismLauncher-*.AppImage.zsync/PrismLauncher-*-x86_64.AppImage.zsync PrismLauncher-Linux-x86_64.AppImage.zsync || true
+          mv PrismLauncher-*.AppImage/PrismLauncher-*-aarch64.AppImage PrismLauncher-Linux-aarch64.AppImage || true
+          mv PrismLauncher-*.AppImage.zsync/PrismLauncher-*-aarch64.AppImage.zsync PrismLauncher-Linux-aarch64.AppImage.zsync || true
+          mv PrismLauncher-macOS*/PrismLauncher.zip PrismLauncher-macOS-${{ env.VERSION }}.zip || true
+          
           tar --exclude='.git' -czf PrismLauncher-${{ env.VERSION }}.tar.gz PrismLauncher-${{ env.VERSION }}
 
           for d in PrismLauncher-Windows-MSVC*; do
