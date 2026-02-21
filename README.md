@@ -1,7 +1,7 @@
 This project does not have any affiliation to PrismLauncher, nor Microsoft.\
 This is a fork of prism launcher which enables Adding offline account.\
 This is done in order to test, and experiment.\
-This application does not support or endorse piracy. You must own a legitimate copy of the game purchased from an official store.
+This application does not support or endorse piracy. Just for experiments and testing.
 
 This may come with its own flaws such as:
   - Applications are not signed, and OS may give warning
