@@ -87,9 +87,11 @@ void PackInstallTask::executeTask()
     NetJob::Ptr netJob{ new NetJob("ATLauncher::VersionFetch", APPLICATION->network()) };
     auto searchUrl =
         QString(BuildConfig.ATL_DOWNLOAD_SERVER_URL + "packs/%1/versions/%2/Configs.json").arg(m_pack_safe_name).arg(m_version_name);
-    netJob->addNetAction(Net::ApiDownload::makeByteArray(QUrl(searchUrl), response.get()));
 
-    connect(netJob.get(), &NetJob::succeeded, this, &PackInstallTask::onDownloadSucceeded);
+    auto [action, response] = Net::ApiDownload::makeByteArray(QUrl(searchUrl));
+    netJob->addNetAction(action);
+
+    connect(netJob.get(), &NetJob::succeeded, this, [this, response] { onDownloadSucceeded(response); });
     connect(netJob.get(), &NetJob::failed, this, &PackInstallTask::onDownloadFailed);
     connect(netJob.get(), &NetJob::aborted, this, &PackInstallTask::onDownloadAborted);
 
@@ -97,17 +99,20 @@ void PackInstallTask::executeTask()
     jobPtr->start();
 }
 
-void PackInstallTask::onDownloadSucceeded()
+void PackInstallTask::onDownloadSucceeded(QByteArray* responsePtr)
 {
     qDebug() << "PackInstallTask::onDownloadSucceeded:" << QThread::currentThreadId();
+
+    // NOTE(TheKodeToad): moving the response out to avoid it from being destroyed by jobPtr.reset()
+    QByteArray response = std::move(*responsePtr);
     jobPtr.reset();
 
     QJsonParseError parse_error{};
-    QJsonDocument doc = QJsonDocument::fromJson(*response, &parse_error);
+    QJsonDocument doc = QJsonDocument::fromJson(response, &parse_error);
     if (parse_error.error != QJsonParseError::NoError) {
         qWarning() << "Error while parsing JSON response from ATLauncher at" << parse_error.offset
                    << "reason:" << parse_error.errorString();
-        qWarning() << *response.get();
+        qWarning() << response;
         return;
     }
     auto obj = doc.object();
@@ -989,65 +994,66 @@ void PackInstallTask::install()
 
     auto instanceConfigPath = FS::PathCombine(m_stagingPath, "instance.cfg");
     MinecraftInstance instance(m_globalSettings, std::make_unique<INISettingsObject>(instanceConfigPath), m_stagingPath);
-    SettingsObject::Lock lock(instance.settings());
+    {
+        SettingsObject::Lock lock(instance.settings());
+        auto components = instance.getPackProfile();
+        components->buildingFromScratch();
 
-    auto components = instance.getPackProfile();
-    components->buildingFromScratch();
-
-    // Use a component to add libraries BEFORE Minecraft
-    if (!createLibrariesComponent(instance.instanceRoot(), components)) {
-        emitFailed(tr("Failed to create libraries component"));
-        return;
-    }
-
-    // Minecraft
-    components->setComponentVersion("net.minecraft", m_version.minecraft, true);
-
-    // Loader
-    if (m_version.loader.type == QString("forge")) {
-        auto version = getVersionForLoader("net.minecraftforge");
-        if (version == Q_NULLPTR)
+        // Use a component to add libraries BEFORE Minecraft
+        if (!createLibrariesComponent(instance.instanceRoot(), components)) {
+            emitFailed(tr("Failed to create libraries component"));
             return;
+        }
 
-        components->setComponentVersion("net.minecraftforge", version);
-    } else if (m_version.loader.type == QString("neoforge")) {
-        auto version = getVersionForLoader("net.neoforged");
-        if (version == Q_NULLPTR)
+        // Minecraft
+        components->setComponentVersion("net.minecraft", m_version.minecraft, true);
+
+        // Loader
+        if (m_version.loader.type == QString("forge")) {
+            auto version = getVersionForLoader("net.minecraftforge");
+            if (version == Q_NULLPTR)
+                return;
+
+            components->setComponentVersion("net.minecraftforge", version);
+        } else if (m_version.loader.type == QString("neoforge")) {
+            auto version = getVersionForLoader("net.neoforged");
+            if (version == Q_NULLPTR)
+                return;
+
+            components->setComponentVersion("net.neoforged", version);
+        } else if (m_version.loader.type == QString("fabric")) {
+            auto version = getVersionForLoader("net.fabricmc.fabric-loader");
+            if (version == Q_NULLPTR)
+                return;
+
+            components->setComponentVersion("net.fabricmc.fabric-loader", version);
+        } else if (m_version.loader.type != QString()) {
+            emitFailed(tr("Unknown loader type: ") + m_version.loader.type);
             return;
+        }
 
-        components->setComponentVersion("net.neoforged", version);
-    } else if (m_version.loader.type == QString("fabric")) {
-        auto version = getVersionForLoader("net.fabricmc.fabric-loader");
-        if (version == Q_NULLPTR)
+        for (const auto& componentUid : componentsToInstall.keys()) {
+            auto version = componentsToInstall.value(componentUid);
+            components->setComponentVersion(componentUid, version->version());
+        }
+
+        components->installJarMods(jarmods);
+
+        // Use a component to fill in the rest of the data
+        // todo: use more detection
+        if (!createPackComponent(instance.instanceRoot(), components)) {
+            emitFailed(tr("Failed to create pack component"));
             return;
+        }
 
-        components->setComponentVersion("net.fabricmc.fabric-loader", version);
-    } else if (m_version.loader.type != QString()) {
-        emitFailed(tr("Unknown loader type: ") + m_version.loader.type);
-        return;
+        components->saveNow();
+
+        instance.setName(name());
+        instance.setIconKey(m_instIcon);
+        instance.setManagedPack("atlauncher", m_pack_safe_name, m_pack_name, m_version_name, m_version_name);
+
+        jarmods.clear();
     }
-
-    for (const auto& componentUid : componentsToInstall.keys()) {
-        auto version = componentsToInstall.value(componentUid);
-        components->setComponentVersion(componentUid, version->version());
-    }
-
-    components->installJarMods(jarmods);
-
-    // Use a component to fill in the rest of the data
-    // todo: use more detection
-    if (!createPackComponent(instance.instanceRoot(), components)) {
-        emitFailed(tr("Failed to create pack component"));
-        return;
-    }
-
-    components->saveNow();
-
-    instance.setName(name());
-    instance.setIconKey(m_instIcon);
-    instance.setManagedPack("atlauncher", m_pack_safe_name, m_pack_name, m_version_name, m_version_name);
-
-    jarmods.clear();
     emitSucceeded();
 }
 

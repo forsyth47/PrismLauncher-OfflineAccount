@@ -815,6 +815,8 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
 
         m_settings->registerSetting("UpdateDialogGeometry", "");
 
+        m_settings->registerSetting("NewsGeometry", "");
+
         m_settings->registerSetting("ModDownloadGeometry", "");
         m_settings->registerSetting("RPDownloadGeometry", "");
         m_settings->registerSetting("TPDownloadGeometry", "");
@@ -2003,7 +2005,7 @@ void Application::triggerUpdateCheck()
     }
 }
 
-QUrl Application::normalizeImportUrl(QString const& url)
+QUrl Application::normalizeImportUrl(const QString& url)
 {
     auto local_file = QFileInfo(url);
     if (local_file.exists()) {

@@ -957,10 +957,8 @@ void MainWindow::processURLs(QList<QUrl> urls)
                 extra_info.insert("pack_id", addonId);
                 extra_info.insert("pack_version_id", fileId);
 
-                auto array = std::make_shared<QByteArray>();
-
                 auto api = FlameAPI();
-                auto job = api.getFile(addonId, fileId, array.get());
+                auto [job, array] = api.getFile(addonId, fileId);
 
                 connect(job.get(), &Task::failed, this,
                         [this](QString reason) { CustomMessageBox::selectable(this, tr("Error"), reason, QMessageBox::Critical)->show(); });
@@ -1359,7 +1357,7 @@ void MainWindow::on_actionAddToPATH_triggered()
 
 void MainWindow::on_actionOpenWiki_triggered()
 {
-    DesktopServices::openUrl(QUrl(BuildConfig.HELP_URL.arg("")));
+    DesktopServices::openUrl(QUrl(BuildConfig.WIKI_URL));
 }
 
 void MainWindow::on_actionMoreNews_triggered()
