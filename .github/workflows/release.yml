@@ -4,6 +4,21 @@ on:
   push:
     tags:
       - "*"
+  workflow_call:
+    inputs:
+      build-type:
+        description: Type of build (Debug or Release)
+        type: string
+        default: Debug
+      environment:
+        description: Deployment environment to run under
+        type: string
+  workflow_dispatch:
+    inputs:
+      build-type:
+        description: Type of build (Debug or Release)
+        type: string
+        default: Debug
 
 jobs:
   build_release:
